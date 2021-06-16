@@ -14,6 +14,7 @@ package s3sync
 
 import (
 	"errors"
+	"mime"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -273,11 +274,16 @@ func (m *Manager) deleteLocal(file *fileInfo, destPath string) error {
 
 func (m *Manager) upload(file *fileInfo, sourcePath string, destPath *s3Path) error {
 	var sourceFilename string
+	var sourceFileExt string
+
 	if file.singleFile {
 		sourceFilename = sourcePath
 	} else {
 		sourceFilename = filepath.Join(sourcePath, file.name)
 	}
+
+	// Extract file extension for expanding mime type check
+	sourceFileExt = filepath.Ext(sourceFilename)
 
 	destFile := *destPath
 	if strings.HasSuffix(destPath.bucketPrefix, "/") || destPath.bucketPrefix == "" || !file.singleFile {
@@ -291,16 +297,27 @@ func (m *Manager) upload(file *fileInfo, sourcePath string, destPath *s3Path) er
 	}
 
 	var contentType *string
+	var myMime string
 	switch {
 	case m.contentType != nil:
 		contentType = m.contentType
 	case m.guessMime:
-		mime, err := mimetype.DetectFile(sourceFilename)
-		if err != nil {
-			return err
+
+		// Check mime type on extension first
+		if sourceFileExt != "" {
+		   myMime := mime.TypeByExtension(sourceFileExt)
+		   contentType = &myMime
 		}
-		s := mime.String()
-		contentType = &s
+
+		// myMime is empty so use outside library for evaluation of mime type
+		if myMime == "" {
+		   mime, err := mimetype.DetectFile(sourceFilename)
+		   if err != nil {
+		      return err
+		   }
+		   s := mime.String()
+		   contentType = &s
+		}
 	}
 
 	reader, err := os.Open(sourceFilename)
