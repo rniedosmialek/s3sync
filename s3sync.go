@@ -310,7 +310,7 @@ func (m *Manager) upload(file *fileInfo, sourcePath string, destPath *s3Path) er
 		}
 
 		// myMime is empty so use outside library for evaluation of mime type
-		if myMime == "" {
+		if contentType == nil {
 		   mime, err := mimetype.DetectFile(sourceFilename)
 		   if err != nil {
 		      return err
