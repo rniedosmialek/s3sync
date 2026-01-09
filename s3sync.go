@@ -297,12 +297,11 @@ func (m *Manager) upload(file *fileInfo, sourcePath string, destPath *s3Path) er
 	}
 
 	var contentType *string
-	var myMime string
 	switch {
 	case m.contentType != nil:
 		contentType = m.contentType
 	case m.guessMime:
-
+		var myMime string
 		// Check mime type on extension first
 		if sourceFileExt != "" {
 		   myMime := mime.TypeByExtension(sourceFileExt)
